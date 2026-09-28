@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ahmed Al-Humaid — Software Engineer</title>
+  <meta name="description" content="Ahmed Khaled Al-Humaid — Computer Science graduate from KFUPM. Software engineering, full-stack development and cloud infrastructure." />
+  <meta name="theme-color" content="#05060a" />
+  <meta property="og:title" content="Ahmed Al-Humaid — Software Engineer" />
+  <meta property="og:description" content="Full-stack, cloud & distributed systems. KFUPM CS '26." />
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='%2305060a'/><text x='50' y='68' font-size='54' font-family='monospace' font-weight='700' text-anchor='middle' fill='%237cf7d4'>A</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <!-- Preloader -->
+  <div class="loader" id="loader" aria-hidden="true">
+    <div class="loader__inner">
+      <div class="loader__name">
+        <span>A</span><span>H</span><span>M</span><span>E</span><span>D</span>
+      </div>
+      <div class="loader__bar"><i id="loaderBar"></i></div>
+      <div class="loader__count"><span id="loaderCount">0</span>%</div>
+    </div>
+  </div>
+
+  <!-- Cursor -->
+  <div class="cursor" id="cursor" aria-hidden="true"></div>
+  <div class="cursor-ring" id="cursorRing" aria-hidden="true"><span id="cursorLabel"></span></div>
+
+  <div class="progress" id="progress" aria-hidden="true"></div>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="blobs" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <header class="nav" id="nav">
+    <a href="#top" class="nav__logo magnetic" data-cursor="home">A<span>/</span>H</a>
+    <nav class="nav__links" id="navLinks">
+      <a href="#about" data-scramble>About</a>
+      <a href="#experience" data-scramble>Experience</a>
+      <a href="#projects" data-scramble>Projects</a>
+      <a href="#skills" data-scramble>Skills</a>
+      <a href="#terminal" data-scramble>Terminal</a>
+      <a href="#contact" data-scramble>Contact</a>
+    </nav>
+    <button class="nav__burger" id="burger" aria-label="Toggle menu"><i></i><i></i></button>
+  </header>
+
+  <main>
+    <!-- HERO -->
+    <section class="hero" id="top">
+      <canvas id="heroCanvas" aria-hidden="true"></canvas>
+      <div class="hero__content">
+        <p class="hero__eyebrow reveal-up"><span class="dot"></span> Available for software engineering roles</p>
+        <h1 class="sr-only">Ahmed Khaled Al-Humaid</h1>
+        <div class="hero__spacer" aria-hidden="true"></div>
+        <p class="hero__role">
+          <span class="mono">&gt;</span>
+          <span id="roleText">Software Engineer</span><span class="caret">_</span>
+        </p>
+        <p class="hero__sub reveal-up">Ahmed Khaled Al-Humaid · KFUPM Computer Science · Cloud Computing</p>
+        <div class="hero__cta reveal-up">
+          <a href="#projects" class="btn btn--primary magnetic" data-cursor="explore"><span>Explore my work</span></a>
+          <a href="#contact" class="btn btn--ghost magnetic" data-cursor="say hi"><span>Get in touch</span></a>
+        </div>
+      </div>
+      <div class="hero__hint">move your cursor · click to morph</div>
+      <a href="#about" class="scroll-cue" aria-label="Scroll down"><span></span></a>
+    </section>
+
+    <!-- MARQUEE -->
+    <div class="marquee" aria-hidden="true">
+      <div class="marquee__track">
+        <span>Full-Stack</span><b>✦</b><span>Cloud Infrastructure</span><b>✦</b><span>Distributed Systems</span><b>✦</b><span>DevOps</span><b>✦</b><span>Mobile</span><b>✦</b>
+        <span>Full-Stack</span><b>✦</b><span>Cloud Infrastructure</span><b>✦</b><span>Distributed Systems</span><b>✦</b><span>DevOps</span><b>✦</b><span>Mobile</span><b>✦</b>
+      </div>
+    </div>
+
+    <!-- ABOUT -->
+    <section class="section about" id="about">
+      <div class="section__head">
+        <span class="section__idx">01</span>
+        <h2 class="section__title" data-split>About me</h2>
+      </div>
+      <p class="about__text" id="aboutText">Computer Science graduate from KFUPM with a strong foundation in software engineering, full-stack development, and cloud infrastructure. Experienced in building web and mobile applications, with hands-on work in AWS, GCP, Docker, and CI/CD, and knowledge of distributed systems. Seeking a software engineering role where I can contribute my knowledge and skills while continuing to grow as an engineer.</p>
+
+      <div class="stats">
+        <div class="stat tilt">
+          <div class="stat__num"><span data-count="3.874" data-decimals="3">0</span></div>
+          <div class="stat__label">Cumulative GPA / 4.00</div>
+        </div>
+        <div class="stat tilt">
+          <div class="stat__num"><span data-count="4">0</span></div>
+          <div class="stat__label">Shipped projects</div>
+        </div>
+        <div class="stat tilt">
+          <div class="stat__num"><span data-count="3">0</span></div>
+          <div class="stat__label">Academic awards</div>
+        </div>
+        <div class="stat tilt">
+          <div class="stat__num"><span data-count="607">0</span></div>
+          <div class="stat__label">TOEFL PBT / 677</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- EDUCATION -->
+    <section class="section edu" id="education">
+      <div class="section__head">
+        <span class="section__idx">02</span>
+        <h2 class="section__title" data-split>Education</h2>
+      </div>
+      <article class="edu__card spotlight">
+        <div class="edu__main">
+          <div class="edu__meta mono">2021 — 2026 · Saudi Arabia</div>
+          <h3>King Fahd University of Petroleum and Minerals</h3>
+          <p class="edu__degree">Bachelor of Science in Computer Science — <em>Concentration: Cloud Computing</em></p>
+          <div class="chips">
+            <span>Object Oriented Programming</span>
+            <span>Data Structures &amp; Algorithms</span>
+            <span>Principles of Software Engineering</span>
+            <span>Databases</span>
+            <span>Web Development &amp; Engineering</span>
+            <span>Networks &amp; Data Communication</span>
+          </div>
+        </div>
+        <div class="edu__gauges">
+          <div class="gauge" data-value="3.874" data-max="4">
+            <svg viewBox="0 0 120 120"><circle class="gauge__track" cx="60" cy="60" r="52"/><circle class="gauge__fill" cx="60" cy="60" r="52"/></svg>
+            <div class="gauge__label"><strong>3.874</strong><small>Cumulative</small></div>
+          </div>
+          <div class="gauge" data-value="3.844" data-max="4">
+            <svg viewBox="0 0 120 120"><circle class="gauge__track" cx="60" cy="60" r="52"/><circle class="gauge__fill" cx="60" cy="60" r="52"/></svg>
+            <div class="gauge__label"><strong>3.844</strong><small>Major</small></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- EXPERIENCE -->
+    <section class="section exp" id="experience">
+      <div class="section__head">
+        <span class="section__idx">03</span>
+        <h2 class="section__title" data-split>Experience</h2>
+      </div>
+      <div class="timeline" id="timeline">
+        <div class="timeline__line"><i id="timelineFill"></i></div>
+        <article class="tl-item reveal">
+          <div class="tl-item__node"></div>
+          <div class="tl-item__card spotlight">
+            <div class="tl-item__top">
+              <div>
+                <h3>Data Analyst Intern</h3>
+                <p class="tl-item__org">Saudi Aramco</p>
+              </div>
+              <span class="pill mono">Jun — Aug 2025</span>
+            </div>
+            <ul>
+              <li>Built interactive <strong>Power BI</strong> dashboards and reports that turned raw operational data into clear visualizations for stakeholders.</li>
+              <li>Wrote <strong>DAX</strong> queries to create calculated measures and custom metrics, enabling more meaningful analysis than the raw data allowed.</li>
+              <li>Developed a working understanding of <strong>Python automation</strong> and its role in streamlining repetitive reporting tasks.</li>
+            </ul>
+            <div class="dash" aria-hidden="true">
+              <div class="dash__bars" id="dashBars"></div>
+              <div class="dash__caption mono">raw data → insight</div>
+            </div>
+          </div>
+        </article>
+        <article class="tl-item reveal">
+          <div class="tl-item__node tl-item__node--alt"></div>
+          <div class="tl-item__card spotlight">
+            <div class="tl-item__top">
+              <div>
+                <h3>B.Sc. Computer Science</h3>
+                <p class="tl-item__org">KFUPM · Dean's Honor List 2025</p>
+              </div>
+              <span class="pill mono">2021 — 2026</span>
+            </div>
+            <ul>
+              <li>Cloud Computing concentration — OpenStack, AWS, microservices and distributed systems.</li>
+              <li>Outstanding Performance Awards in Mathematics (2022) and Physics (2023).</li>
+            </ul>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section class="section projects" id="projects">
+      <div class="section__head">
+        <span class="section__idx">04</span>
+        <h2 class="section__title" data-split>Selected projects</h2>
+      </div>
+      <p class="section__lede">Hover to tilt · click a card to dive in</p>
+      <div class="projects__grid">
+        <article class="project tilt spotlight" data-project="0" data-cursor="open" tabindex="0">
+          <div class="project__viz"><canvas class="viz" data-viz="faas"></canvas></div>
+          <div class="project__body">
+            <span class="project__date mono">May 2026</span>
+            <h3>QuickCard FaaS on OpenStack</h3>
+            <p>Function-as-a-Service platform on an OpenStack VM running on-demand microservices with faasd &amp; Docker.</p>
+            <div class="tags"><span>OpenStack</span><span>faasd</span><span>Docker</span><span>Networking</span></div>
+          </div>
+        </article>
+        <article class="project tilt spotlight" data-project="1" data-cursor="open" tabindex="0">
+          <div class="project__viz"><canvas class="viz" data-viz="cdn"></canvas></div>
+          <div class="project__body">
+            <span class="project__date mono">Dec 2025</span>
+            <h3>Static Hosting on AWS</h3>
+            <p>S3 origin fronted by CloudFront as a global CDN — fast, cached and served over HTTPS worldwide.</p>
+            <div class="tags"><span>AWS S3</span><span>CloudFront</span><span>HTTPS</span><span>CDN</span></div>
+          </div>
+        </article>
+        <article class="project tilt spotlight" data-project="2" data-cursor="open" tabindex="0">
+          <div class="project__viz"><canvas class="viz" data-viz="solar"></canvas></div>
+          <div class="project__body">
+            <span class="project__date mono">May 2025</span>
+            <h3>Distributed Solar Telemetry</h3>
+            <p>3 edge servers stream sensor data over UDP with ACKs &amp; retries to a Flask collector and live React dashboard.</p>
+            <div class="tags"><span>UDP</span><span>Flask</span><span>React</span><span>Distributed</span></div>
+          </div>
+        </article>
+        <article class="project tilt spotlight" data-project="3" data-cursor="open" tabindex="0">
+          <div class="project__viz"><canvas class="viz" data-viz="train"></canvas></div>
+          <div class="project__body">
+            <span class="project__date mono">Dec 2024</span>
+            <h3>Train-Booking System</h3>
+            <p>Full-stack MERN app with seat selection, reservation management and JWT-secured accounts.</p>
+            <div class="tags"><span>MongoDB</span><span>Express</span><span>React</span><span>Node</span><span>JWT</span></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- SKILLS -->
+    <section class="section skills" id="skills">
+      <div class="section__head">
+        <span class="section__idx">05</span>
+        <h2 class="section__title" data-split>Tech universe</h2>
+      </div>
+      <p class="section__lede">Drag the sphere · hover a category to highlight</p>
+      <div class="skills__wrap">
+        <div class="sphere" id="sphere" data-cursor="drag"></div>
+        <div class="skills__list" id="skillsList">
+          <div class="skill-group" data-group="web"><h4>Web (Full-Stack)</h4><p>MongoDB · Express.js · React · Node.js · HTML · CSS · JavaScript</p></div>
+          <div class="skill-group" data-group="mobile"><h4>Mobile</h4><p>Flutter · Dart</p></div>
+          <div class="skill-group" data-group="lang"><h4>Languages</h4><p>Java · Python · JavaScript · Dart · C · SQL</p></div>
+          <div class="skill-group" data-group="devops"><h4>DevOps &amp; Containers</h4><p>Docker · Terraform · Linux · VirtualBox · GitHub Actions · CI/CD</p></div>
+          <div class="skill-group" data-group="cloud"><h4>Cloud</h4><p>AWS (S3, EC2, CloudFront) · GCP · OpenStack</p></div>
+          <div class="skill-group" data-group="data"><h4>Data &amp; VCS</h4><p>Database Design · Normalization · SQL · MongoDB · Git · GitHub</p></div>
+        </div>
+      </div>
+
+      <div class="soft">
+        <div class="soft__item reveal"><span class="soft__icon">⟁</span><p>Translating complex requirements into clear technical solutions</p></div>
+        <div class="soft__item reveal"><span class="soft__icon">⧉</span><p>Coordinating across multidisciplinary engineering teams</p></div>
+        <div class="soft__item reveal"><span class="soft__icon">▤</span><p>Producing professional technical documentation and reports</p></div>
+        <div class="soft__item reveal"><span class="soft__icon">↯</span><p>Self-directed learning and rapid adoption of new tools</p></div>
+      </div>
+    </section>
+
+    <!-- AWARDS -->
+    <section class="section awards" id="awards">
+      <div class="section__head">
+        <span class="section__idx">06</span>
+        <h2 class="section__title" data-split>Honors &amp; credentials</h2>
+      </div>
+      <div class="awards__grid">
+        <div class="award reveal spotlight"><span class="award__year mono">2025</span><h4>Dean's Honor List</h4><p>Department of Computing &amp; Mathematics, KFUPM</p><span class="award__glyph">✦</span></div>
+        <div class="award reveal spotlight"><span class="award__year mono">2023</span><h4>Outstanding Performance — Physics</h4><p>KFUPM Physics Department</p><span class="award__glyph">⚛</span></div>
+        <div class="award reveal spotlight"><span class="award__year mono">2022</span><h4>Outstanding Performance — Mathematics</h4><p>KFUPM Mathematics Department</p><span class="award__glyph">∑</span></div>
+        <div class="award award--cert reveal spotlight"><span class="award__year mono">Udemy</span><h4>Flutter &amp; Dart — The Complete Guide</h4><p>Maximilian Schwarzmüller</p><span class="award__glyph">◆</span></div>
+        <div class="award award--cert reveal spotlight"><span class="award__year mono">Udemy</span><h4>Software Architecture &amp; Design of Modern Large Scale Systems</h4><p>Michael Pogrebinsky</p><span class="award__glyph">⬡</span></div>
+        <div class="award award--lang reveal spotlight"><span class="award__year mono">Languages</span><h4>Arabic · English</h4><p>Native · Fluent — TOEFL PBT 607/677 (≈ IELTS 7.0–7.5)</p><span class="award__glyph">ع</span></div>
+      </div>
+    </section>
+
+    <!-- TERMINAL -->
+    <section class="section term-section" id="terminal">
+      <div class="section__head">
+        <span class="section__idx">07</span>
+        <h2 class="section__title" data-split>Talk to my shell</h2>
+      </div>
+      <p class="section__lede">Type <code>help</code> to see what it can do</p>
+      <div class="term" id="term" data-cursor="type">
+        <div class="term__bar"><i></i><i></i><i></i><span class="mono">ahmed@portfolio: ~</span></div>
+        <div class="term__body" id="termBody">
+          <div class="term__out" id="termOut"></div>
+          <div class="term__line">
+            <span class="term__prompt">ahmed@portfolio:~$</span>
+            <input id="termInput" class="term__input" autocomplete="off" spellcheck="false" aria-label="Terminal input" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CONTACT -->
+    <section class="section contact" id="contact">
+      <p class="contact__eyebrow mono">08 — what's next?</p>
+      <h2 class="contact__title">
+        <span class="line"><span>Let's build</span></span>
+        <span class="line"><span class="grad">something great.</span></span>
+      </h2>
+      <div class="contact__actions">
+        <button class="btn btn--primary btn--xl magnetic" id="copyEmail" data-cursor="copy">
+          <span id="copyEmailText">humaidakah@gmail.com</span>
+        </button>
+        <a class="btn btn--ghost magnetic" id="linkedinLink" href="#" target="_blank" rel="noopener" data-cursor="connect"><span>LinkedIn ↗</span></a>
+        <a class="btn btn--ghost magnetic" href="assets/Ahmed_Khaled_Al-Humaid_Resume.pdf" download data-cursor="download"><span>Résumé ↓</span></a>
+      </div>
+      <p class="contact__loc mono">📍 Saudi Arabia · Open to opportunities</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span class="mono">© <span id="year"></span> Ahmed Khaled Al-Humaid</span>
+    <span class="mono footer__hint">psst — try the Konami code ↑↑↓↓←→←→BA</span>
+  </footer>
+
+  <!-- Project modal -->
+  <div class="modal" id="modal" aria-hidden="true" role="dialog" aria-modal="true">
+    <div class="modal__backdrop" data-close></div>
+    <div class="modal__panel">
+      <button class="modal__close" data-close aria-label="Close">✕</button>
+      <div id="modalContent"></div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+
+  <script src="js/main.js"></script>
+</body>
+</html>
