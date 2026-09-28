@@ -29,4 +29,4 @@ Settings → Pages → Source: *Deploy from a branch* → select the branch and 
 
 ## Customize
 
-Set your LinkedIn profile URL in `LINKEDIN_URL` at the top of `js/main.js`.
+The LinkedIn link is `LINKEDIN_URL` at the top of `js/main.js`. Keep the `https://` prefix, or the browser treats it as a page on this site.
