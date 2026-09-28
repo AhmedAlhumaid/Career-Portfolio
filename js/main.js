@@ -174,105 +174,130 @@
     });
   }
 
-  /* --------------------------------------------------- Hero particle text */
-  function initHero() {
-    const canvas = $("#heroCanvas");
-    const hero = $(".hero");
-    const spacer = $(".hero__spacer");
-    let ctx, W, H, particles = [], stars = [];
-    const words = ["AHMED", "AL-HUMAID", "ENGINEER", "CLOUD", "FULL·STACK", "</>"];
-    let wordIdx = 0;
+  /* --------------------------------------------------------- Hero name */
+  function mix(a, b, t) {
+    const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
+    const r = Math.round(lerp(pa >> 16, pb >> 16, t)), g = Math.round(lerp((pa >> 8) & 255, (pb >> 8) & 255, t)), bl = Math.round(lerp(pa & 255, pb & 255, t));
+    return `rgb(${r},${g},${bl})`;
+  }
+  const gradAt = (t) => (t < 0.5 ? mix(COLORS[0], COLORS[1], t * 2) : mix(COLORS[1], COLORS[2], (t - 0.5) * 2));
 
-    function sampleWord(word) {
-      const sr = spacer.getBoundingClientRect(), hr = hero.getBoundingClientRect();
-      const cx = W / 2, cy = sr.top - hr.top + sr.height / 2;
-      const off = document.createElement("canvas");
-      off.width = W; off.height = H;
-      const o = off.getContext("2d");
-      let size = Math.min(W * 0.9 / (word.length * 0.62), sr.height * 0.95, 260);
-      o.font = `700 ${size}px "Space Grotesk", system-ui, sans-serif`;
-      const mw = o.measureText(word).width;
-      if (mw > W * 0.9) { size *= (W * 0.9) / mw; o.font = `700 ${size}px "Space Grotesk", system-ui, sans-serif`; }
-      o.fillStyle = "#fff"; o.textAlign = "center"; o.textBaseline = "middle";
-      o.fillText(word, cx, cy);
-      const data = o.getImageData(0, 0, W, H).data;
-      const gap = W < 600 ? 4 : size > 180 ? 6 : 5;
-      const pts = [];
-      for (let y = 0; y < H; y += gap)
-        for (let x = 0; x < W; x += gap)
-          if (data[(y * W + x) * 4 + 3] > 128) pts.push([x, y]);
-      return pts;
-    }
+  // Split the name into letters: an outer span for the entrance, an inner one for the cursor wave.
+  function initHeroName() {
+    const name = $("#heroName");
+    let idx = 0;
+    $$("[data-letters]", name).forEach((line) => {
+      const chars = [...line.textContent];
+      const grad = line.classList.contains("hero__line--grad");
+      line.innerHTML = chars.map((c, i) => {
+        const style = grad ? ` style="color:${gradAt(i / Math.max(1, chars.length - 1))}"` : "";
+        return c === " "
+          ? `<span class="ch ch--space"> </span>`
+          : `<span class="ch" style="transition-delay:${(idx++ * 0.045).toFixed(3)}s"><span class="ch__i"${style}>${c}</span></span>`;
+      }).join("");
+    });
+    // Shrink the font only if the longest line would overflow the screen.
+    const fit = () => {
+      name.style.fontSize = "";
+      const avail = document.documentElement.clientWidth * 0.92;
+      const widest = Math.max(...$$(".hero__line", name).map((l) => l.scrollWidth));
+      if (widest > avail) name.style.fontSize = parseFloat(getComputedStyle(name).fontSize) * (avail / widest) + "px";
+    };
+    fit();
+    addEventListener("resize", fit);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
 
-    function colorAt(x) {
-      const t = x / W;
-      return t < 0.5 ? mix(COLORS[0], COLORS[1], t * 2) : mix(COLORS[1], COLORS[2], (t - 0.5) * 2);
-    }
-    function mix(a, b, t) {
-      const pa = parseInt(a.slice(1), 16), pb = parseInt(b.slice(1), 16);
-      const r = Math.round(lerp(pa >> 16, pb >> 16, t)), g = Math.round(lerp((pa >> 8) & 255, (pb >> 8) & 255, t)), bl = Math.round(lerp(pa & 255, pb & 255, t));
-      return `rgb(${r},${g},${bl})`;
-    }
+    if (!finePointer || reduced) return;
 
-    function setWord(word, burst) {
-      const pts = sampleWord(word);
-      for (let i = pts.length - 1; i > 0; i--) { const j = (Math.random() * (i + 1)) | 0; [pts[i], pts[j]] = [pts[j], pts[i]]; }
-      while (particles.length < pts.length) {
-        particles.push({ x: rand(0, W), y: rand(0, H), vx: 0, vy: 0, tx: 0, ty: 0, s: rand(1.2, 2.4), c: "#fff", free: false });
-      }
-      particles.forEach((p, i) => {
-        if (i < pts.length) { p.tx = pts[i][0]; p.ty = pts[i][1]; p.free = false; p.c = colorAt(pts[i][0]); }
-        else { p.free = true; }
-        if (burst) { const a = Math.random() * Math.PI * 2, f = rand(4, 18); p.vx += Math.cos(a) * f; p.vy += Math.sin(a) * f; }
+    const letters = $$(".ch__i", name);
+    let centers = [];
+    const measure = () => {
+      centers = letters.map((l) => { const r = l.parentElement.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+    };
+    addEventListener("resize", measure);
+    addEventListener("scroll", measure, { passive: true });
+    setTimeout(measure, 1500);
+    whileVisible(name, () => {
+      if (!centers.length) return;
+      letters.forEach((l, i) => {
+        const dx = mouse.x - centers[i][0], dy = mouse.y - centers[i][1];
+        const f = Math.max(0, 1 - Math.hypot(dx, dy) / 260);
+        const e = f * f * (3 - 2 * f);
+        l.style.transform = `translateY(${-e * 22}px) scale(${1 + e * 0.12}) rotate(${-dx * e * 0.03}deg)`;
+        l.style.textShadow = e > 0.05 ? `0 0 ${30 * e}px rgba(124,247,212,${0.6 * e})` : "";
       });
-      particles = particles.filter((p, i) => i < pts.length || Math.random() < 0.5 || !p.free).slice(0, Math.max(pts.length, 0) + 300);
-    }
+    });
+  }
 
-    function resize() {
+  /* ------------------------------------------ Hero interactive constellation */
+  function initHero() {
+    const canvas = $("#heroCanvas"), hero = $(".hero");
+    let ctx, W, H, nodes = [], sparks = [];
+    const resize = () => {
       ({ ctx, w: W, h: H } = fitCanvas(canvas));
-      stars = Array.from({ length: Math.round((W * H) / 9000) }, () => ({ x: rand(0, W), y: rand(0, H), r: rand(0.3, 1.2), a: rand(0.1, 0.6), sp: rand(0.05, 0.25) }));
-      setWord(words[wordIdx], false);
-    }
-
-    function next() { wordIdx = (wordIdx + 1) % words.length; setWord(words[wordIdx], true); }
-    canvas.addEventListener("click", next);
-    let auto = setInterval(next, 7000);
-    canvas.addEventListener("click", () => { clearInterval(auto); auto = setInterval(next, 9000); });
-
-    let resizeT;
-    addEventListener("resize", () => { clearTimeout(resizeT); resizeT = setTimeout(resize, 150); });
+      const n = Math.round(clamp((W * H) / 9000, 40, 150));
+      nodes = Array.from({ length: n }, () => ({
+        x: rand(0, W), y: rand(0, H), vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3),
+        r: rand(1, 2.2), c: COLORS[(Math.random() * 3) | 0],
+      }));
+    };
+    let t0; addEventListener("resize", () => { clearTimeout(t0); t0 = setTimeout(resize, 150); });
     resize();
-    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => setWord(words[wordIdx], false));
 
-    whileVisible(hero, (t) => {
+    // Click anywhere in the hero for a burst of sparks.
+    hero.addEventListener("click", (e) => {
+      if (e.target.closest("a, button")) return;
+      const r = canvas.getBoundingClientRect(), x = e.clientX - r.left, y = e.clientY - r.top;
+      for (let i = 0; i < 40; i++) {
+        const a = rand(0, Math.PI * 2), sp = rand(2, 9);
+        sparks.push({ x, y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1, c: COLORS[i % 3] });
+      }
+      nodes.forEach((n) => {
+        const dx = n.x - x, dy = n.y - y, d = Math.hypot(dx, dy) || 1;
+        if (d < 260) { n.vx += (dx / d) * (260 - d) * 0.04; n.vy += (dy / d) * (260 - d) * 0.04; }
+      });
+    });
+
+    const LINK = 130;
+    whileVisible(hero, () => {
       ctx.clearRect(0, 0, W, H);
-      // stars
-      for (const s of stars) {
-        s.y -= s.sp; if (s.y < 0) { s.y = H; s.x = rand(0, W); }
-        ctx.globalAlpha = s.a * (0.6 + 0.4 * Math.sin(t / 700 + s.x));
-        ctx.fillStyle = "#fff"; ctx.fillRect(s.x, s.y, s.r, s.r);
+      const r = canvas.getBoundingClientRect(), mx = mouse.x - r.left, my = mouse.y - r.top;
+      for (const n of nodes) {
+        const dx = mx - n.x, dy = my - n.y, d = Math.hypot(dx, dy);
+        if (d < 220 && !reduced) { n.vx += (dx / d) * 0.02; n.vy += (dy / d) * 0.02; }
+        n.vx *= 0.985; n.vy *= 0.985;
+        if (Math.hypot(n.vx, n.vy) < 0.15) { n.vx += rand(-0.05, 0.05); n.vy += rand(-0.05, 0.05); }
+        n.x += n.vx; n.y += n.vy;
+        if (n.x < 0 || n.x > W) { n.vx *= -1; n.x = clamp(n.x, 0, W); }
+        if (n.y < 0 || n.y > H) { n.vy *= -1; n.y = clamp(n.y, 0, H); }
       }
+      ctx.lineWidth = 1;
+      for (let i = 0; i < nodes.length; i++) {
+        const a = nodes[i];
+        for (let j = i + 1; j < nodes.length; j++) {
+          const b = nodes[j], dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
+          if (d2 < LINK * LINK) {
+            ctx.strokeStyle = `rgba(124,140,255,${(1 - Math.sqrt(d2) / LINK) * 0.28})`;
+            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
+          }
+        }
+        const d = Math.hypot(a.x - mx, a.y - my);
+        if (d < 200) {
+          ctx.strokeStyle = `rgba(124,247,212,${(1 - d / 200) * 0.6})`;
+          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(mx, my); ctx.stroke();
+        }
+      }
+      for (const n of nodes) {
+        ctx.fillStyle = n.c; ctx.globalAlpha = 0.85;
+        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2); ctx.fill();
+      }
+      sparks = sparks.filter((s) => {
+        s.vx *= 0.94; s.vy *= 0.94; s.x += s.vx; s.y += s.vy; s.life -= 0.02;
+        ctx.globalAlpha = Math.max(0, s.life); ctx.fillStyle = s.c;
+        ctx.beginPath(); ctx.arc(s.x, s.y, 2 * s.life + 0.5, 0, Math.PI * 2); ctx.fill();
+        return s.life > 0;
+      });
       ctx.globalAlpha = 1;
-      const r = canvas.getBoundingClientRect();
-      const mx = mouse.x - r.left, my = mouse.y - r.top;
-      const R = Math.min(W, 900) * 0.12, R2 = R * R;
-      for (const p of particles) {
-        if (p.free) {
-          p.vx += rand(-0.05, 0.05); p.vy += rand(-0.05, 0.05);
-          p.vx *= 0.98; p.vy *= 0.98;
-        } else {
-          p.vx += (p.tx - p.x) * 0.012; p.vy += (p.ty - p.y) * 0.012;
-          p.vx *= 0.86; p.vy *= 0.86;
-        }
-        const dx = p.x - mx, dy = p.y - my, d2 = dx * dx + dy * dy;
-        if (d2 < R2 && !reduced) {
-          const d = Math.sqrt(d2) || 1, f = (1 - d / R) * 7;
-          p.vx += (dx / d) * f; p.vy += (dy / d) * f;
-        }
-        p.x += p.vx; p.y += p.vy;
-        ctx.fillStyle = p.free ? "rgba(255,255,255,.25)" : p.c;
-        ctx.fillRect(p.x, p.y, p.s, p.s);
-      }
     });
   }
 
@@ -690,112 +715,6 @@
     });
   }
 
-  /* -------------------------------------------------------------- Terminal */
-  function initTerminal() {
-    const out = $("#termOut"), input = $("#termInput"), body = $("#termBody");
-    const hist = []; let hi = 0;
-    const print = (html, cls = "") => { const d = document.createElement("div"); d.className = cls; d.innerHTML = html; out.appendChild(d); body.scrollTop = body.scrollHeight; };
-    const typeLines = async (lines) => {
-      for (const l of lines) { print(l); await new Promise((r) => setTimeout(r, reduced ? 0 : 35)); }
-    };
-
-    const CMDS = {
-      help: () => [
-        `<span class="t-a1">Available commands</span>`,
-        ...[
-          ["whoami", "who is Ahmed?"], ["about", "the short story"], ["education", "degree & GPA"], ["experience", "work history"],
-          ["projects", "things I've built"], ["skills", "tech stack"], ["awards", "honors & certificates"], ["contact", "reach me"],
-          ["neofetch", "system info, but me"], ["hire", "you know you want to"], ["clear", "clear the screen"],
-        ].map(([c, d]) => `  <span class="t-cmd">${c.padEnd(12)}</span><span class="t-muted">${d}</span>`),
-      ],
-      whoami: () => [`Ahmed Khaled Al-Humaid — <span class="t-a1">Software Engineer</span> · KFUPM CS '26 · Saudi Arabia 🇸🇦`],
-      about: () => [$("#aboutText").textContent],
-      education: () => [
-        `<span class="t-a2">King Fahd University of Petroleum and Minerals</span> <span class="t-muted">2021 – 2026</span>`,
-        `B.Sc. Computer Science — Concentration: Cloud Computing`,
-        `GPA <span class="t-a1">3.874</span>/4.00 · Major GPA <span class="t-a1">3.844</span>/4.00`,
-      ],
-      experience: () => [
-        `<span class="t-a2">Saudi Aramco</span> — Data Analyst Intern <span class="t-muted">Jun – Aug 2025</span>`,
-        `  ▹ Interactive Power BI dashboards turning raw operational data into insight`,
-        `  ▹ DAX measures & custom metrics`,
-        `  ▹ Python automation for repetitive reporting`,
-      ],
-      projects: () => PROJECTS.map((p, i) => `<span class="t-a1">[${i + 1}]</span> ${p.title} <span class="t-muted">— ${p.date}</span>`).concat(`<span class="t-muted">tip: click a project card above for the deep dive</span>`),
-      skills: () => [
-        `<span class="t-a1">web     </span> MERN · HTML · CSS · JavaScript`,
-        `<span class="t-a1">mobile  </span> Flutter · Dart`,
-        `<span class="t-a1">langs   </span> Java · Python · JavaScript · Dart · C · SQL`,
-        `<span class="t-a1">devops  </span> Docker · Terraform · Linux · GitHub Actions · CI/CD`,
-        `<span class="t-a1">cloud   </span> AWS (S3, EC2, CloudFront) · GCP · OpenStack`,
-        `<span class="t-a1">data    </span> DB design · Normalization · SQL · MongoDB · Git`,
-      ],
-      awards: () => [
-        `🏆 Dean's Honor List — KFUPM <span class="t-muted">2025</span>`,
-        `🏆 Outstanding Performance in Physics <span class="t-muted">2023</span>`,
-        `🏆 Outstanding Performance in Mathematics <span class="t-muted">2022</span>`,
-        `📜 Flutter &amp; Dart — The Complete Guide (Udemy)`,
-        `📜 Software Architecture &amp; Design of Modern Large Scale Systems (Udemy)`,
-      ],
-      contact: () => [`✉  <a class="t-a1" href="mailto:${EMAIL}">${EMAIL}</a>`, `in <a class="t-a1" href="${LINKEDIN_URL}" target="_blank" rel="noopener">LinkedIn</a>`],
-      neofetch: () => [
-        `<span class="t-a1">   ▄▀▀▄   </span>  <span class="t-a1">ahmed</span>@<span class="t-a1">portfolio</span>`,
-        `<span class="t-a1">  █▄▄▄▄█  </span>  ─────────────────`,
-        `<span class="t-a2">  █    █  </span>  <span class="t-a1">OS</span>: KFUPM CS (Cloud Computing)`,
-        `<span class="t-a2">  ▀    ▀  </span>  <span class="t-a1">Uptime</span>: 2021 → 2026`,
-        `<span class="t-a3">          </span>  <span class="t-a1">GPA</span>: 3.874 / 4.00`,
-        `<span class="t-a3">          </span>  <span class="t-a1">Shell</span>: bash · git · docker`,
-        `<span class="t-a3">          </span>  <span class="t-a1">Languages</span>: Arabic (native), English (fluent)`,
-        `            <span style="color:#7cf7d4">███</span><span style="color:#7c8cff">███</span><span style="color:#ff6ad5">███</span><span style="color:#febc2e">███</span>`,
-      ],
-      hire: () => { confetti(); toast("🎉 Excellent decision!"); return [`<span class="t-a1">Initiating hiring sequence…</span>`, `Opening mail client → ${EMAIL}`, `<span class="t-muted">(${EMAIL} — I'd love to hear from you)</span>`]; },
-      sudo: () => [`<span class="t-a3">Nice try.</span> But you already have root access to my attention — try <span class="t-cmd">hire</span>.`],
-      ls: () => [`about.txt  education/  experience/  projects/  skills.json  awards.md  contact.vcf`],
-      date: () => [new Date().toString()],
-      echo: (args) => [args.join(" ").replace(/</g, "&lt;")],
-      clear: () => { out.innerHTML = ""; return []; },
-    };
-    const alias = { "?": "help", "cat": "about", "exit": "clear", "man": "help", "resume": "whoami" };
-
-    async function run(raw) {
-      const line = raw.trim();
-      print(`<span class="term__prompt">ahmed@portfolio:~$</span> <span class="t-cmd">${line.replace(/</g, "&lt;")}</span>`);
-      if (!line) return;
-      hist.push(line); hi = hist.length;
-      const [cmd, ...args] = line.split(/\s+/);
-      const key = alias[cmd.toLowerCase()] || cmd.toLowerCase();
-      const fn = CMDS[key];
-      if (!fn) return print(`<span class="t-a3">command not found:</span> ${cmd.replace(/</g, "&lt;")} — type <span class="t-cmd">help</span>`);
-      await typeLines(fn(args));
-      if (key === "hire") setTimeout(() => (location.href = `mailto:${EMAIL}?subject=Let's%20work%20together`), 900);
-    }
-
-    input.addEventListener("keydown", (e) => {
-      if (e.key === "Enter") { const v = input.value; input.value = ""; run(v); }
-      else if (e.key === "ArrowUp") { e.preventDefault(); hi = Math.max(0, hi - 1); input.value = hist[hi] || ""; }
-      else if (e.key === "ArrowDown") { e.preventDefault(); hi = Math.min(hist.length, hi + 1); input.value = hist[hi] || ""; }
-      else if (e.key === "Tab") {
-        e.preventDefault();
-        const m = Object.keys(CMDS).filter((c) => c.startsWith(input.value.toLowerCase()));
-        if (m.length === 1) input.value = m[0];
-        else if (m.length > 1) print(`<span class="t-muted">${m.join("  ")}</span>`);
-      }
-    });
-    $("#term").addEventListener("click", () => input.focus({ preventScroll: true }));
-
-    // Boot sequence when the terminal first scrolls into view
-    onceVisible([$("#term")], async () => {
-      await typeLines([
-        `<span class="t-muted">Booting ahmed-os v2026.1 …</span>`,
-        `<span class="t-muted">[ <span class="t-a1">OK</span> ] Mounted /projects</span>`,
-        `<span class="t-muted">[ <span class="t-a1">OK</span> ] Started curiosity.service</span>`,
-        `<span class="t-muted">[ <span class="t-a1">OK</span> ] Reached target: Ready to be hired</span>`,
-        ``,
-        `Welcome! Type <span class="t-cmd">help</span> to get started, or try <span class="t-cmd">neofetch</span>.`,
-      ]);
-    }, { threshold: 0.4 });
-  }
-
   /* --------------------------------------------------------------- Contact */
   function toast(msg) {
     const t = $("#toast"); t.textContent = msg; t.classList.add("show");
@@ -856,6 +775,7 @@
 
   /* ------------------------------------------------------------------ Boot */
   initCursor();
+  initHeroName();
   initNav();
   initSplits();
   initAbout();
@@ -865,7 +785,6 @@
   initViz();
   initModal();
   initSphere();
-  initTerminal();
   initContact();
   initKonami();
   runLoader(() => {
