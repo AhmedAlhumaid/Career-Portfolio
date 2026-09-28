@@ -5,8 +5,7 @@
 (() => {
   "use strict";
 
-  // Update this with your public LinkedIn profile URL.
-  const LINKEDIN_URL = "www.linkedin.com/in/ahmed-al-humaid-7a494227b";
+  const LINKEDIN_URL = "https://www.linkedin.com/in/ahmed-al-humaid-7a494227b/";
   const EMAIL = "humaidakah@gmail.com";
 
   const $ = (s, el = document) => el.querySelector(s);
