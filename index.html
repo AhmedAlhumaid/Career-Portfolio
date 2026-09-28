@@ -40,8 +40,8 @@
       <a href="#about" data-scramble>About</a>
       <a href="#experience" data-scramble>Experience</a>
       <a href="#projects" data-scramble>Projects</a>
+      <a href="#education" data-scramble>Education</a>
       <a href="#skills" data-scramble>Skills</a>
-      <a href="#terminal" data-scramble>Terminal</a>
       <a href="#contact" data-scramble>Contact</a>
     </nav>
     <button class="nav__burger" id="burger" aria-label="Toggle menu"><i></i><i></i></button>
@@ -53,19 +53,21 @@
       <canvas id="heroCanvas" aria-hidden="true"></canvas>
       <div class="hero__content">
         <p class="hero__eyebrow reveal-up"><span class="dot"></span> Available for software engineering roles</p>
-        <h1 class="sr-only">Ahmed Khaled Al-Humaid</h1>
-        <div class="hero__spacer" aria-hidden="true"></div>
+        <h1 class="hero__name" id="heroName" aria-label="Ahmed Khaled Al-Humaid">
+          <span class="hero__line" data-letters>Ahmed Khaled</span>
+          <span class="hero__line hero__line--grad" data-letters>Al-Humaid</span>
+        </h1>
         <p class="hero__role">
           <span class="mono">&gt;</span>
           <span id="roleText">Software Engineer</span><span class="caret">_</span>
         </p>
-        <p class="hero__sub reveal-up">Ahmed Khaled Al-Humaid · KFUPM Computer Science · Cloud Computing</p>
+        <p class="hero__sub reveal-up">B.Sc. Computer Science, KFUPM · Cloud Computing · First Class Honors</p>
         <div class="hero__cta reveal-up">
           <a href="#projects" class="btn btn--primary magnetic" data-cursor="explore"><span>Explore my work</span></a>
           <a href="#contact" class="btn btn--ghost magnetic" data-cursor="say hi"><span>Get in touch</span></a>
         </div>
       </div>
-      <div class="hero__hint">move your cursor · click to morph</div>
+      <div class="hero__hint">move your cursor · click anywhere</div>
       <a href="#about" class="scroll-cue" aria-label="Scroll down"><span></span></a>
     </section>
 
@@ -111,11 +113,57 @@
         <span class="section__idx">02</span>
         <h2 class="section__title" data-split>Education</h2>
       </div>
-      <article class="edu__card spotlight">
-        <div class="edu__main">
-          <div class="edu__meta mono">2021 — 2026 · Saudi Arabia</div>
-          <h3>King Fahd University of Petroleum and Minerals</h3>
-          <p class="edu__degree">Bachelor of Science in Computer Science — <em>Concentration: Cloud Computing</em></p>
+      <article class="bsc spotlight reveal">
+        <header class="bsc__head">
+          <div class="bsc__icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10 12 5 2 10l10 5 10-5Z"/><path d="M6 12v5c3 2 9 2 12 0v-5"/><path d="M22 10v6"/></svg>
+          </div>
+          <div class="bsc__title">
+            <span class="bsc__meta mono">KFUPM · 2021 — 2026 · Saudi Arabia</span>
+            <h3>B.Sc. in Computer Science</h3>
+            <p>King Fahd University of Petroleum and Minerals</p>
+          </div>
+          <span class="honor-badge"><span aria-hidden="true">★</span> First Class Honors</span>
+        </header>
+
+        <div class="bsc__grid">
+          <div class="bsc__tile">
+            <span class="bsc__label mono">GPA</span>
+            <div class="bsc__gauges">
+              <div class="gauge" data-value="3.874" data-max="4">
+                <svg viewBox="0 0 120 120"><circle class="gauge__track" cx="60" cy="60" r="52"/><circle class="gauge__fill" cx="60" cy="60" r="52"/></svg>
+                <div class="gauge__label"><strong>3.874</strong><small>Cumulative</small></div>
+              </div>
+              <div class="gauge" data-value="3.844" data-max="4">
+                <svg viewBox="0 0 120 120"><circle class="gauge__track" cx="60" cy="60" r="52"/><circle class="gauge__fill" cx="60" cy="60" r="52"/></svg>
+                <div class="gauge__label"><strong>3.844</strong><small>Major</small></div>
+              </div>
+            </div>
+            <p class="bsc__note mono">out of 4.00</p>
+          </div>
+          <div class="bsc__tile">
+            <span class="bsc__label mono">Concentration</span>
+            <div class="bsc__big">Cloud Computing</div>
+            <p class="bsc__desc">OpenStack, AWS, microservices and distributed systems.</p>
+          </div>
+          <div class="bsc__tile bsc__tile--honor">
+            <span class="bsc__label mono">Honors</span>
+            <div class="bsc__big">First Class Honors</div>
+            <p class="bsc__desc">Plus the Dean's Honor List, Department of Computing &amp; Mathematics.</p>
+          </div>
+        </div>
+
+        <div class="bsc__section">
+          <span class="bsc__label mono">Academic awards</span>
+          <div class="bsc__awards">
+            <div class="bsc__award"><span class="bsc__glyph" aria-hidden="true">✦</span><div><strong>Dean's Honor List</strong><small>Dept. of Computing &amp; Mathematics</small></div><span class="bsc__year mono">2025</span></div>
+            <div class="bsc__award"><span class="bsc__glyph" aria-hidden="true">⚛</span><div><strong>Outstanding Performance — Physics</strong><small>KFUPM Physics Department</small></div><span class="bsc__year mono">2023</span></div>
+            <div class="bsc__award"><span class="bsc__glyph" aria-hidden="true">∑</span><div><strong>Outstanding Performance — Mathematics</strong><small>KFUPM Mathematics Department</small></div><span class="bsc__year mono">2022</span></div>
+          </div>
+        </div>
+
+        <div class="bsc__section">
+          <span class="bsc__label mono">Core coursework</span>
           <div class="chips">
             <span>Object Oriented Programming</span>
             <span>Data Structures &amp; Algorithms</span>
@@ -123,16 +171,6 @@
             <span>Databases</span>
             <span>Web Development &amp; Engineering</span>
             <span>Networks &amp; Data Communication</span>
-          </div>
-        </div>
-        <div class="edu__gauges">
-          <div class="gauge" data-value="3.874" data-max="4">
-            <svg viewBox="0 0 120 120"><circle class="gauge__track" cx="60" cy="60" r="52"/><circle class="gauge__fill" cx="60" cy="60" r="52"/></svg>
-            <div class="gauge__label"><strong>3.874</strong><small>Cumulative</small></div>
-          </div>
-          <div class="gauge" data-value="3.844" data-max="4">
-            <svg viewBox="0 0 120 120"><circle class="gauge__track" cx="60" cy="60" r="52"/><circle class="gauge__fill" cx="60" cy="60" r="52"/></svg>
-            <div class="gauge__label"><strong>3.844</strong><small>Major</small></div>
           </div>
         </div>
       </article>
@@ -165,22 +203,6 @@
               <div class="dash__bars" id="dashBars"></div>
               <div class="dash__caption mono">raw data → insight</div>
             </div>
-          </div>
-        </article>
-        <article class="tl-item reveal">
-          <div class="tl-item__node tl-item__node--alt"></div>
-          <div class="tl-item__card spotlight">
-            <div class="tl-item__top">
-              <div>
-                <h3>B.Sc. Computer Science</h3>
-                <p class="tl-item__org">KFUPM · Dean's Honor List 2025</p>
-              </div>
-              <span class="pill mono">2021 — 2026</span>
-            </div>
-            <ul>
-              <li>Cloud Computing concentration — OpenStack, AWS, microservices and distributed systems.</li>
-              <li>Outstanding Performance Awards in Mathematics (2022) and Physics (2023).</li>
-            </ul>
           </div>
         </article>
       </div>
@@ -264,46 +286,25 @@
     <section class="section awards" id="awards">
       <div class="section__head">
         <span class="section__idx">06</span>
-        <h2 class="section__title" data-split>Honors &amp; credentials</h2>
+        <h2 class="section__title" data-split>Certificates &amp; languages</h2>
       </div>
       <div class="awards__grid">
-        <div class="award reveal spotlight"><span class="award__year mono">2025</span><h4>Dean's Honor List</h4><p>Department of Computing &amp; Mathematics, KFUPM</p><span class="award__glyph">✦</span></div>
-        <div class="award reveal spotlight"><span class="award__year mono">2023</span><h4>Outstanding Performance — Physics</h4><p>KFUPM Physics Department</p><span class="award__glyph">⚛</span></div>
-        <div class="award reveal spotlight"><span class="award__year mono">2022</span><h4>Outstanding Performance — Mathematics</h4><p>KFUPM Mathematics Department</p><span class="award__glyph">∑</span></div>
         <div class="award award--cert reveal spotlight"><span class="award__year mono">Udemy</span><h4>Flutter &amp; Dart — The Complete Guide</h4><p>Maximilian Schwarzmüller</p><span class="award__glyph">◆</span></div>
         <div class="award award--cert reveal spotlight"><span class="award__year mono">Udemy</span><h4>Software Architecture &amp; Design of Modern Large Scale Systems</h4><p>Michael Pogrebinsky</p><span class="award__glyph">⬡</span></div>
         <div class="award award--lang reveal spotlight"><span class="award__year mono">Languages</span><h4>Arabic · English</h4><p>Native · Fluent — TOEFL PBT 607/677 (≈ IELTS 7.0–7.5)</p><span class="award__glyph">ع</span></div>
       </div>
     </section>
 
-    <!-- TERMINAL -->
-    <section class="section term-section" id="terminal">
-      <div class="section__head">
-        <span class="section__idx">07</span>
-        <h2 class="section__title" data-split>Talk to my shell</h2>
-      </div>
-      <p class="section__lede">Type <code>help</code> to see what it can do</p>
-      <div class="term" id="term" data-cursor="type">
-        <div class="term__bar"><i></i><i></i><i></i><span class="mono">ahmed@portfolio: ~</span></div>
-        <div class="term__body" id="termBody">
-          <div class="term__out" id="termOut"></div>
-          <div class="term__line">
-            <span class="term__prompt">ahmed@portfolio:~$</span>
-            <input id="termInput" class="term__input" autocomplete="off" spellcheck="false" aria-label="Terminal input" />
-          </div>
-        </div>
-      </div>
-    </section>
 
     <!-- CONTACT -->
     <section class="section contact" id="contact">
-      <p class="contact__eyebrow mono">08 — what's next?</p>
+      <p class="contact__eyebrow mono">07 — what's next?</p>
       <h2 class="contact__title">
         <span class="line"><span>Let's build</span></span>
         <span class="line"><span class="grad">something great.</span></span>
       </h2>
       <div class="contact__actions">
-        <button class="btn btn--primary btn--xl magnetic" id="copyEmail" data-cursor="copy">
+        <button class="btn btn--primary magnetic" id="copyEmail" data-cursor="copy">
           <span id="copyEmailText">humaidakah@gmail.com</span>
         </button>
         <a class="btn btn--ghost magnetic" id="linkedinLink" href="#" target="_blank" rel="noopener" data-cursor="connect"><span>LinkedIn ↗</span></a>
