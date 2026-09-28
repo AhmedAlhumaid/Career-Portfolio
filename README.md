@@ -7,7 +7,7 @@ Plain HTML/CSS/JS with no build step and no dependencies (only Google Fonts).
 ## Features
 
 - A big animated name on the front page: letters rise in, then lift and glow as the cursor passes over them. Behind it, a particle network follows the mouse and bursts into sparks on click.
-- An animated space background across the whole page: parallax star layers, warp-speed streaks while scrolling, shooting stars, drifting nebulae and a ringed planet
+- An animated space background across the whole page: parallax star layers, warp-speed streaks while scrolling, shooting stars and soft color clouds
 - A custom cursor, magnetic buttons, text-scramble effects and a scroll-progress bar
 - An "About" paragraph that lights up word by word as you scroll, plus animated counters and GPA gauges
 - A timeline that draws itself on scroll
@@ -17,6 +17,12 @@ Plain HTML/CSS/JS with no build step and no dependencies (only Google Fonts).
 - Labelled soft skills, plus a certificates section showing the Security Analyst path in progress
 - Confetti, plus a Konami-code party mode
 - Honors `prefers-reduced-motion` and works on mobile
+
+## Performance notes
+
+- The starfield is pre-rendered into images once and only moved with GPU transforms, and only while the page scrolls or the mouse moves.
+- Cards use solid tinted backgrounds, not `backdrop-filter`. A live blur over a moving background has to be recomputed every frame.
+- Scroll and pointer handlers are batched to one update per frame. Animations use `transform`/`opacity` rather than layout properties.
 
 ## Run locally
 

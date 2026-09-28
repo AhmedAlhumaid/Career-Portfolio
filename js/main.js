@@ -41,8 +41,19 @@
     els.forEach((el) => io.observe(el));
   }
 
-  function fitCanvas(canvas) {
-    const dpr = Math.min(devicePixelRatio || 1, 2);
+  /* One shared scroll listener; handlers run at most once per frame. */
+  const scrollFns = [];
+  let scrollQueued = false;
+  addEventListener("scroll", () => {
+    if (scrollQueued) return;
+    scrollQueued = true;
+    requestAnimationFrame(() => { scrollQueued = false; scrollFns.forEach((fn) => fn()); });
+  }, { passive: true });
+  const onScroll = (fn) => { scrollFns.push(fn); fn(); };
+
+  // Full-screen canvases cap their resolution: the extra pixels cost far more than they show.
+  function fitCanvas(canvas, maxDpr = 2) {
+    const dpr = Math.min(devicePixelRatio || 1, maxDpr);
     const r = canvas.getBoundingClientRect();
     canvas.width = Math.max(1, Math.round(r.width * dpr));
     canvas.height = Math.max(1, Math.round(r.height * dpr));
@@ -81,12 +92,16 @@
     addEventListener("pointermove", (e) => {
       rx = e.clientX; ry = e.clientY; dot.style.opacity = ring.style.opacity = 1;
     }, { once: true });
-    (function loop() {
+    // The ring eases after the pointer; the loop sleeps once it has caught up.
+    let running = false;
+    const loop = () => {
       rx = lerp(rx, mouse.x, 0.16); ry = lerp(ry, mouse.y, 0.16);
-      dot.style.transform = `translate(${mouse.x}px, ${mouse.y}px)`;
-      ring.style.transform = `translate(${rx}px, ${ry}px)`;
-      requestAnimationFrame(loop);
-    })();
+      dot.style.transform = `translate3d(${mouse.x}px, ${mouse.y}px, 0)`;
+      ring.style.transform = `translate3d(${rx.toFixed(1)}px, ${ry.toFixed(1)}px, 0)`;
+      if (Math.abs(rx - mouse.x) + Math.abs(ry - mouse.y) > 0.3) requestAnimationFrame(loop);
+      else running = false;
+    };
+    addEventListener("pointermove", () => { if (!running) { running = true; requestAnimationFrame(loop); } }, { passive: true });
     document.addEventListener("pointerover", (e) => {
       const t = e.target.closest("[data-cursor], a, button, input");
       ring.classList.remove("is-label", "is-hover");
@@ -153,7 +168,7 @@
     const links = $$(".nav__links a");
     const sections = links.map((a) => $(a.getAttribute("href"))).filter(Boolean);
 
-    addEventListener("scroll", () => {
+    onScroll(() => {
       const y = scrollY;
       nav.classList.toggle("scrolled", y > 40);
       nav.classList.toggle("hidden", y > lastY && y > 400 && !nav.classList.contains("open"));
@@ -163,7 +178,7 @@
       let current = null;
       sections.forEach((s) => { if (s.getBoundingClientRect().top < innerHeight * 0.4) current = s.id; });
       links.forEach((a) => a.classList.toggle("active", a.getAttribute("href") === "#" + current));
-    }, { passive: true });
+    });
 
     $("#burger").addEventListener("click", () => nav.classList.toggle("open"));
     links.forEach((a) => {
@@ -174,125 +189,126 @@
   }
 
   /* ------------------------------------------------ Space background */
-  // Full-page starfield: parallax star layers, warp streaks while scrolling,
-  // shooting stars, drifting nebulae and a ringed planet.
+  // Full-page starfield built from pre-rendered star tiles, drawn once:
+  //  - distant stars + colour clouds: a static background on the container
+  //  - one nearer layer: a repeating tile moved with transforms (parallax),
+  //    and only while the page scrolls or the mouse moves
+  //  - twinkles and shooting stars: tiny elements with CSS animations
+  //  - warp streaks: pre-drawn tiles faded in while scrolling fast
+  // So when nothing moves, almost nothing on screen has to be redrawn.
   function initSpace() {
-    const canvas = $("#space");
-    let ctx, W, H, stars = [], nebulae = [], shooters = [];
-    const LAYERS = [
-      { depth: 0.08, size: [0.4, 1.0], alpha: 0.5 },
-      { depth: 0.2, size: [0.8, 1.5], alpha: 0.75 },
-      { depth: 0.45, size: [1.2, 2.2], alpha: 1 },
-    ];
-    const TINTS = ["#ffffff", "#ffffff", "#cfe0ff", "#ffe9c4", "#7cf7d4", "#c7b8ff"];
+    const root = $("#space");
+    const T = 1024, PAD = 60; // tile size and parallax margin (CSS px)
+    const dpr = Math.min(devicePixelRatio || 1, 2);
+    const TINTS = ["#ffffff", "#ffffff", "#cfe0ff", "#ffe9c4", "#a8fbe4", "#d4c9ff"];
+    // One moving layer keeps compositing cheap; mixed star sizes still read as depth.
+    const LAYERS = [{ depth: 0.2, count: 280, size: [0.7, 1.9], alpha: [0.5, 1], streak: 40 }];
 
-    const resize = () => {
-      ({ ctx, w: W, h: H } = fitCanvas(canvas));
-      const total = clamp((W * H) / 2600, 250, 800);
-      stars = Array.from({ length: total }, () => {
-        const L = LAYERS[Math.random() < 0.55 ? 0 : Math.random() < 0.7 ? 1 : 2];
+    const tile = (draw) => {
+      const c = document.createElement("canvas");
+      c.width = c.height = T * dpr;
+      const o = c.getContext("2d");
+      o.scale(dpr, dpr);
+      draw(o);
+      return c.toDataURL("image/png");
+    };
+    const layer = (url, cls = "") => {
+      const el = document.createElement("div");
+      el.className = "space__layer " + cls;
+      el.style.backgroundImage = `url(${url})`;
+      root.appendChild(el);
+      return el;
+    };
+
+    root.style.setProperty("--far", `url(${tile((o) => {
+      for (let i = 0; i < 560; i++) {
+        o.globalAlpha = rand(0.25, 0.7); o.fillStyle = TINTS[(Math.random() * TINTS.length) | 0];
+        o.beginPath(); o.arc(rand(0, T), rand(0, T), rand(0.4, 0.9), 0, Math.PI * 2); o.fill();
+      }
+    })})`);
+
+    const layers = LAYERS.map((L) => {
+      const stars = Array.from({ length: L.count }, () => {
+        const big = Math.random() < 0.25; // a quarter of the stars are larger and brighter
         return {
-          x: rand(0, W), y: rand(0, H), L, r: rand(L.size[0], L.size[1]),
-          c: TINTS[(Math.random() * TINTS.length) | 0], tw: rand(0.5, 2.5), ph: rand(0, 6.3),
+          x: rand(0, T), y: rand(0, T), r: big ? rand(1.3, L.size[1]) : rand(L.size[0], 1.2),
+          a: big ? rand(0.8, 1) : rand(...L.alpha), c: TINTS[(Math.random() * TINTS.length) | 0],
         };
       });
-      nebulae = [
-        { x: 0.18, y: 0.3, r: 0.55, c: "124,140,255", a: 0.1 },
-        { x: 0.85, y: 0.65, r: 0.6, c: "255,106,213", a: 0.08 },
-        { x: 0.55, y: 1.1, r: 0.5, c: "124,247,212", a: 0.06 },
-      ].map((n) => ({ ...n, ph: rand(0, 6.3) }));
-    };
-    let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(resize, 150); });
-    resize();
+      const dots = layer(tile((o) => stars.forEach((s) => {
+        o.globalAlpha = s.a; o.fillStyle = s.c;
+        o.beginPath(); o.arc(s.x, s.y, s.r, 0, Math.PI * 2); o.fill();
+        if (s.r > 1.5) { o.globalAlpha = s.a * 0.18; o.beginPath(); o.arc(s.x, s.y, s.r * 3.2, 0, Math.PI * 2); o.fill(); }
+      })));
+      const streaks = L.streak && !reduced ? layer(tile((o) => stars.forEach((s) => {
+        const len = L.streak * (s.r / L.size[1]); // bigger (nearer) stars streak longer
+        const g = o.createLinearGradient(s.x, s.y - len / 2, s.x, s.y + len / 2);
+        g.addColorStop(0, "rgba(255,255,255,0)"); g.addColorStop(0.5, s.c); g.addColorStop(1, "rgba(255,255,255,0)");
+        o.globalAlpha = s.a; o.strokeStyle = g; o.lineWidth = s.r * 1.3; o.lineCap = "round";
+        o.beginPath(); o.moveTo(s.x, s.y - len / 2); o.lineTo(s.x, s.y + len / 2); o.stroke();
+      })), "space__streaks") : null;
+      return { L, dots, streaks };
+    });
 
-    let lastScroll = scrollY, vel = 0, px = 0, py = 0;
+    if (reduced) return;
 
-    function planet(t, sy) {
-      const R = Math.min(W, H) * (W < 700 ? 0.2 : 0.1);
-      const x = W * (W < 700 ? 1.02 : 0.92) + Math.sin(t / 9000) * 10;
-      // drifts upward as the page scrolls, then wraps back in from below
-      const cycle = H * 1.8, base = H * (W < 700 ? 0.12 : 0.3) - sy * 0.12 + H * 0.4;
-      const yy = ((base % cycle) + cycle) % cycle - H * 0.4 + Math.cos(t / 11000) * 8;
-      ctx.save();
-      ctx.translate(x - px * 30, yy - py * 30);
-      // atmosphere glow
-      const glow = ctx.createRadialGradient(0, 0, R * 0.8, 0, 0, R * 1.9);
-      glow.addColorStop(0, "rgba(124,140,255,.25)"); glow.addColorStop(1, "rgba(124,140,255,0)");
-      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, R * 1.9, 0, Math.PI * 2); ctx.fill();
-      // back half of the ring
-      ctx.rotate(-0.35);
-      ctx.strokeStyle = "rgba(255,210,160,.35)"; ctx.lineWidth = R * 0.08;
-      ctx.beginPath(); ctx.ellipse(0, 0, R * 1.75, R * 0.42, 0, Math.PI, Math.PI * 2); ctx.stroke();
-      // body
-      const body = ctx.createRadialGradient(-R * 0.4, -R * 0.4, R * 0.1, 0, 0, R);
-      body.addColorStop(0, "#8f9bff"); body.addColorStop(0.55, "#4b3f9e"); body.addColorStop(1, "#140f2e");
-      ctx.fillStyle = body; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
-      // bands
-      ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.clip();
-      for (let i = -3; i <= 3; i++) {
-        ctx.fillStyle = `rgba(255,255,255,${0.035 + (i % 2 ? 0.02 : 0)})`;
-        ctx.fillRect(-R, i * R * 0.24 + Math.sin(t / 3000 + i) * 2, R * 2, R * 0.09);
-      }
-      ctx.restore();
-      // front half of the ring
-      ctx.strokeStyle = "rgba(255,220,180,.6)";
-      ctx.beginPath(); ctx.ellipse(0, 0, R * 1.75, R * 0.42, 0, 0, Math.PI); ctx.stroke();
-      ctx.strokeStyle = "rgba(255,106,213,.25)"; ctx.lineWidth = R * 0.03;
-      ctx.beginPath(); ctx.ellipse(0, 0, R * 1.95, R * 0.5, 0, 0, Math.PI); ctx.stroke();
-      ctx.restore();
+    // Twinkling: a few dozen tiny dots, each with its own CSS pulse.
+    for (let i = 0; i < 34; i++) {
+      const d = document.createElement("i");
+      d.className = "twinkle";
+      const size = rand(1.5, 3);
+      d.style.cssText = `left:${rand(0, 100)}%;top:${rand(0, 100)}%;width:${size}px;height:${size}px;` +
+        `background:${TINTS[(Math.random() * TINTS.length) | 0]};animation-duration:${rand(2, 5).toFixed(2)}s;animation-delay:${rand(-5, 0).toFixed(2)}s`;
+      root.appendChild(d);
     }
 
-    const frame = (t) => {
+    // Motion: parallax on scroll + mouse; loop runs only while something is moving.
+    const wrap = (v) => ((v % T) + T) % T;
+    let lastScroll = scrollY, vel = 0, warp = 0, px = 0, py = 0, running = false;
+    const apply = (el, x, y) => { el.style.transform = `translate3d(${x.toFixed(1)}px, ${(-y).toFixed(1)}px, 0)`; };
+    const tick = () => {
       const sy = scrollY;
-      vel = lerp(vel, sy - lastScroll, 0.2); lastScroll = sy;
-      if (mouse.x > -1000) { px = lerp(px, mouse.x / W - 0.5, 0.05); py = lerp(py, mouse.y / H - 0.5, 0.05); }
-      ctx.clearRect(0, 0, W, H);
-
-      // drifting nebulae
-      for (const n of nebulae) {
-        const nx = (n.x + Math.sin(t / 20000 + n.ph) * 0.04) * W, ny = (n.y + Math.cos(t / 24000 + n.ph) * 0.04) * H - ((sy * 0.03) % H);
-        const g = ctx.createRadialGradient(nx, ny, 0, nx, ny, n.r * Math.max(W, H));
-        g.addColorStop(0, `rgba(${n.c},${n.a})`); g.addColorStop(1, `rgba(${n.c},0)`);
-        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      }
-
-      // stars (parallax + warp streaks)
-      const warp = clamp(Math.abs(vel), 0, 80);
-      for (const s of stars) {
-        const d = s.L.depth;
-        let y = (s.y - sy * d - py * 40 * d * 3) % H; if (y < 0) y += H;
-        let x = (s.x - px * 40 * d * 3) % W; if (x < 0) x += W;
-        const a = s.L.alpha * (reduced ? 0.8 : 0.55 + 0.45 * Math.sin(t / 1000 * s.tw + s.ph));
-        ctx.globalAlpha = a; ctx.fillStyle = s.c;
-        const streak = warp * d * 1.4;
-        if (streak > 1.5 && !reduced) {
-          ctx.strokeStyle = s.c; ctx.lineWidth = s.r;
-          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + Math.sign(vel) * streak); ctx.stroke();
-        } else {
-          ctx.beginPath(); ctx.arc(x, y, s.r, 0, Math.PI * 2); ctx.fill();
-          if (s.r > 1.7) { ctx.globalAlpha = a * 0.25; ctx.beginPath(); ctx.arc(x, y, s.r * 3, 0, Math.PI * 2); ctx.fill(); }
+      vel = lerp(vel, sy - lastScroll, 0.3); lastScroll = sy;
+      warp = lerp(warp, clamp((Math.abs(vel) - 6) / 40, 0, 1), 0.2);
+      const tx = mouse.x > -1000 ? mouse.x / innerWidth - 0.5 : 0, ty = mouse.y > -1000 ? mouse.y / innerHeight - 0.5 : 0;
+      px = lerp(px, tx, 0.06); py = lerp(py, ty, 0.06);
+      for (const { L, dots, streaks } of layers) {
+        const x = -px * PAD, y = wrap(sy * L.depth + py * 30);
+        apply(dots, x, y);
+        if (streaks) {
+          // Hidden streak layers are skipped by the compositor entirely.
+          const on = warp > 0.01;
+          if (on !== streaks._on) { streaks._on = on; streaks.style.visibility = on ? "visible" : "hidden"; }
+          if (on) apply(streaks, x, y);
+          streaks.style.opacity = warp.toFixed(3);
+          dots.style.opacity = (1 - warp * 0.75).toFixed(3);
         }
       }
-      ctx.globalAlpha = 1;
-
-      planet(t, sy);
-
-      // shooting stars
-      if (!reduced && Math.random() < 0.006) {
-        const ang = rand(0.3, 0.7);
-        shooters.push({ x: rand(0, W * 0.8), y: rand(0, H * 0.5), vx: Math.cos(ang) * 14, vy: Math.sin(ang) * 14, life: 1 });
-      }
-      shooters = shooters.filter((m) => {
-        m.x += m.vx; m.y += m.vy; m.life -= 0.015;
-        const g = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * 9, m.y - m.vy * 9);
-        g.addColorStop(0, `rgba(255,255,255,${m.life})`); g.addColorStop(1, "rgba(124,247,212,0)");
-        ctx.strokeStyle = g; ctx.lineWidth = 2;
-        ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx * 9, m.y - m.vy * 9); ctx.stroke();
-        return m.life > 0 && m.x < W + 200 && m.y < H + 200;
-      });
-      requestAnimationFrame(frame);
+      const moving = Math.abs(vel) > 0.05 || warp > 0.002 || Math.abs(tx - px) > 0.001 || Math.abs(ty - py) > 0.001;
+      if (moving) requestAnimationFrame(tick); else running = false;
     };
-    requestAnimationFrame(frame);
+    const kick = () => { if (!running) { running = true; requestAnimationFrame(tick); } };
+    addEventListener("scroll", kick, { passive: true });
+    addEventListener("pointermove", kick, { passive: true });
+    kick();
+
+    // Shooting stars: a short CSS animation every few seconds.
+    const meteor = () => {
+      if (!document.hidden) {
+        const m = document.createElement("i");
+        m.className = "meteor";
+        const ang = rand(20, 40), dist = rand(500, 900);
+        m.style.left = rand(0, innerWidth * 0.7) + "px";
+        m.style.top = rand(0, innerHeight * 0.45) + "px";
+        m.style.setProperty("--a", ang + "deg");
+        m.style.setProperty("--dx", Math.cos((ang * Math.PI) / 180) * dist + "px");
+        m.style.setProperty("--dy", Math.sin((ang * Math.PI) / 180) * dist + "px");
+        m.addEventListener("animationend", () => m.remove());
+        root.appendChild(m);
+      }
+      setTimeout(meteor, rand(2500, 7000));
+    };
+    setTimeout(meteor, 1500);
   }
 
   /* --------------------------------------------------------- Hero name */
@@ -330,24 +346,41 @@
 
     if (!finePointer || reduced) return;
 
+    // Letter centres are cached in page coordinates, so pointer moves never
+    // force a layout; the wave only updates when the mouse actually moves.
     const letters = $$(".ch__i", name);
-    let centers = [];
+    let centers = [], queued = false, active = false;
     const measure = () => {
-      centers = letters.map((l) => { const r = l.parentElement.getBoundingClientRect(); return [r.left + r.width / 2, r.top + r.height / 2]; });
+      centers = letters.map((l) => {
+        const r = l.parentElement.getBoundingClientRect();
+        return [r.left + r.width / 2 + scrollX, r.top + r.height / 2 + scrollY];
+      });
     };
-    addEventListener("resize", measure);
-    addEventListener("scroll", measure, { passive: true });
-    setTimeout(measure, 1500);
-    whileVisible(name, () => {
+    addEventListener("resize", () => setTimeout(measure, 200));
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => setTimeout(measure, 1600));
+    setTimeout(measure, 1600); // after the entrance animation settles
+
+    const update = () => {
+      queued = false;
       if (!centers.length) return;
+      let any = false;
       letters.forEach((l, i) => {
-        const dx = mouse.x - centers[i][0], dy = mouse.y - centers[i][1];
+        const dx = mouse.x - (centers[i][0] - scrollX), dy = mouse.y - (centers[i][1] - scrollY);
         const f = Math.max(0, 1 - Math.hypot(dx, dy) / 260);
         const e = f * f * (3 - 2 * f);
-        l.style.transform = `translateY(${-e * 22}px) scale(${1 + e * 0.12}) rotate(${-dx * e * 0.03}deg)`;
-        l.style.textShadow = e > 0.05 ? `0 0 ${30 * e}px rgba(124,247,212,${0.6 * e})` : "";
+        if (e > 0.001) {
+          any = true;
+          l.style.transform = `translate3d(0, ${(-e * 22).toFixed(1)}px, 0) scale(${(1 + e * 0.12).toFixed(3)}) rotate(${(-dx * e * 0.03).toFixed(2)}deg)`;
+        } else if (l.style.transform) l.style.transform = "";
+        l.classList.toggle("glow", e > 0.35);
       });
-    });
+      active = any;
+    };
+    const queue = () => { if (!queued) { queued = true; requestAnimationFrame(update); } };
+    addEventListener("pointermove", (e) => {
+      // Skip work unless the pointer is near the name (or letters still need resetting).
+      if (active || Math.abs(e.clientY + scrollY - (centers[0] ? centers[0][1] : 0)) < 600) queue();
+    }, { passive: true });
   }
 
   /* ------------------------------------------ Hero interactive constellation */
@@ -355,8 +388,8 @@
     const canvas = $("#heroCanvas"), hero = $(".hero");
     let ctx, W, H, nodes = [], sparks = [];
     const resize = () => {
-      ({ ctx, w: W, h: H } = fitCanvas(canvas));
-      const n = Math.round(clamp((W * H) / 9000, 40, 150));
+      ({ ctx, w: W, h: H } = fitCanvas(canvas, 1.5));
+      const n = Math.round(clamp((W * H) / 12000, 36, 110));
       nodes = Array.from({ length: n }, () => ({
         x: rand(0, W), y: rand(0, H), vx: rand(-0.3, 0.3), vy: rand(-0.3, 0.3),
         r: rand(1, 2.2), c: COLORS[(Math.random() * 3) | 0],
@@ -379,43 +412,60 @@
       });
     });
 
-    const LINK = 130;
+    // Lines are grouped into a few opacity buckets and stroked as one path per
+    // bucket, instead of one draw call per line.
+    const LINK = 130, LINK2 = LINK * LINK, BUCKETS = 4;
+    const paths = Array.from({ length: BUCKETS }, () => []);
     whileVisible(hero, () => {
       ctx.clearRect(0, 0, W, H);
       const r = canvas.getBoundingClientRect(), mx = mouse.x - r.left, my = mouse.y - r.top;
       for (const n of nodes) {
         const dx = mx - n.x, dy = my - n.y, d = Math.hypot(dx, dy);
-        if (d < 220 && !reduced) { n.vx += (dx / d) * 0.02; n.vy += (dy / d) * 0.02; }
+        if (d < 220 && d > 0 && !reduced) { n.vx += (dx / d) * 0.02; n.vy += (dy / d) * 0.02; }
         n.vx *= 0.985; n.vy *= 0.985;
-        if (Math.hypot(n.vx, n.vy) < 0.15) { n.vx += rand(-0.05, 0.05); n.vy += rand(-0.05, 0.05); }
+        if (n.vx * n.vx + n.vy * n.vy < 0.0225) { n.vx += rand(-0.05, 0.05); n.vy += rand(-0.05, 0.05); }
         n.x += n.vx; n.y += n.vy;
         if (n.x < 0 || n.x > W) { n.vx *= -1; n.x = clamp(n.x, 0, W); }
         if (n.y < 0 || n.y > H) { n.vy *= -1; n.y = clamp(n.y, 0, H); }
       }
-      ctx.lineWidth = 1;
+      for (const b of paths) b.length = 0;
       for (let i = 0; i < nodes.length; i++) {
         const a = nodes[i];
         for (let j = i + 1; j < nodes.length; j++) {
-          const b = nodes[j], dx = a.x - b.x, dy = a.y - b.y, d2 = dx * dx + dy * dy;
-          if (d2 < LINK * LINK) {
-            ctx.strokeStyle = `rgba(124,140,255,${(1 - Math.sqrt(d2) / LINK) * 0.28})`;
-            ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke();
-          }
-        }
-        const d = Math.hypot(a.x - mx, a.y - my);
-        if (d < 200) {
-          ctx.strokeStyle = `rgba(124,247,212,${(1 - d / 200) * 0.6})`;
-          ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(mx, my); ctx.stroke();
+          const b = nodes[j], dx = a.x - b.x;
+          if (dx > LINK || dx < -LINK) continue;
+          const dy = a.y - b.y, d2 = dx * dx + dy * dy;
+          if (d2 < LINK2) paths[Math.min(BUCKETS - 1, ((1 - Math.sqrt(d2) / LINK) * BUCKETS) | 0)].push(a.x, a.y, b.x, b.y);
         }
       }
-      for (const n of nodes) {
-        ctx.fillStyle = n.c; ctx.globalAlpha = 0.85;
-        ctx.beginPath(); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2); ctx.fill();
+      ctx.lineWidth = 1;
+      paths.forEach((seg, k) => {
+        if (!seg.length) return;
+        ctx.strokeStyle = `rgba(124,140,255,${(((k + 0.5) / BUCKETS) * 0.28).toFixed(3)})`;
+        ctx.beginPath();
+        for (let i = 0; i < seg.length; i += 4) { ctx.moveTo(seg[i], seg[i + 1]); ctx.lineTo(seg[i + 2], seg[i + 3]); }
+        ctx.stroke();
+      });
+      if (mx > -1000) {
+        ctx.strokeStyle = "rgba(124,247,212,.35)";
+        ctx.beginPath();
+        for (const a of nodes) {
+          const dx = a.x - mx, dy = a.y - my;
+          if (dx * dx + dy * dy < 40000) { ctx.moveTo(a.x, a.y); ctx.lineTo(mx, my); }
+        }
+        ctx.stroke();
+      }
+      ctx.globalAlpha = 0.85;
+      for (const c of COLORS) {
+        ctx.fillStyle = c; ctx.beginPath();
+        for (const n of nodes) if (n.c === c) { ctx.moveTo(n.x + n.r, n.y); ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2); }
+        ctx.fill();
       }
       sparks = sparks.filter((s) => {
         s.vx *= 0.94; s.vy *= 0.94; s.x += s.vx; s.y += s.vy; s.life -= 0.02;
         ctx.globalAlpha = Math.max(0, s.life); ctx.fillStyle = s.c;
-        ctx.beginPath(); ctx.arc(s.x, s.y, 2 * s.life + 0.5, 0, Math.PI * 2); ctx.fill();
+        const z = 2 * s.life + 0.5;
+        ctx.fillRect(s.x - z, s.y - z, z * 2, z * 2);
         return s.life > 0;
       });
       ctx.globalAlpha = 1;
@@ -442,10 +492,12 @@
       const r = el.getBoundingClientRect();
       const p = clamp((innerHeight * 0.85 - r.top) / (r.height + innerHeight * 0.35), 0, 1);
       const n = Math.round(p * ws.length);
+      if (n === lastN) return;
+      lastN = n;
       ws.forEach((w, i) => w.classList.toggle("lit", i < n));
     };
-    addEventListener("scroll", update, { passive: true });
-    update();
+    let lastN = -1;
+    onScroll(update);
   }
 
   /* ------------------------------------------------------------- Counters */
@@ -473,36 +525,47 @@
     const update = () => {
       const r = tl.getBoundingClientRect();
       const p = clamp((innerHeight * 0.6 - r.top) / r.height, 0, 1);
-      fill.style.height = p * 100 + "%";
+      fill.style.transform = `scaleY(${p.toFixed(4)})`;
     };
-    addEventListener("scroll", update, { passive: true }); update();
+    onScroll(update);
 
     const bars = $("#dashBars");
     for (let i = 0; i < 18; i++) bars.appendChild(document.createElement("i"));
-    const shuffle = () => $$("i", bars).forEach((b, i) => (b.style.height = clamp(20 + Math.sin(i / 2.2) * 30 + rand(0, 45), 8, 100) + "%"));
+    const shuffle = () => $$("i", bars).forEach((b, i) => (b.style.transform = `scaleY(${(clamp(20 + Math.sin(i / 2.2) * 30 + rand(0, 45), 8, 100) / 100).toFixed(3)})`));
     onceVisible([bars], () => { shuffle(); setInterval(shuffle, 2400); }, { threshold: 0.5 });
   }
 
   /* ----------------------------------------------------- Tilt + spotlight */
   function initTilt() {
+    // Pointer effects are coalesced to one update per frame.
+    let spotEv = null;
     document.addEventListener("pointermove", (e) => {
-      const el = e.target.closest && e.target.closest(".spotlight");
-      if (!el) return;
-      const r = el.getBoundingClientRect();
-      el.style.setProperty("--mx", e.clientX - r.left + "px");
-      el.style.setProperty("--my", e.clientY - r.top + "px");
+      if (!spotEv) requestAnimationFrame(() => {
+        const ev = spotEv; spotEv = null;
+        const el = ev.target.closest && ev.target.closest(".spotlight");
+        if (!el) return;
+        const r = el.getBoundingClientRect();
+        el.style.setProperty("--mx", (ev.clientX - r.left).toFixed(0) + "px");
+        el.style.setProperty("--my", (ev.clientY - r.top).toFixed(0) + "px");
+      });
+      spotEv = e;
     }, { passive: true });
 
     if (!finePointer || reduced) return;
     $$(".tilt").forEach((el) => {
+      let rect = null, pending = null;
+      el.addEventListener("pointerenter", () => { rect = el.getBoundingClientRect(); el.style.transition = "transform .15s ease-out"; });
       el.addEventListener("pointermove", (e) => {
-        const r = el.getBoundingClientRect();
-        const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
-        el.style.transition = "transform .1s linear";
-        el.style.transform = `perspective(900px) rotateX(${-y * 10}deg) rotateY(${x * 12}deg) scale(1.02)`;
+        if (!pending) requestAnimationFrame(() => {
+          const ev = pending; pending = null;
+          if (!rect) return;
+          const x = (ev.clientX - rect.left) / rect.width - 0.5, y = (ev.clientY - rect.top) / rect.height - 0.5;
+          el.style.transform = `perspective(900px) rotateX(${(-y * 10).toFixed(2)}deg) rotateY(${(x * 12).toFixed(2)}deg) scale(1.02)`;
+        });
+        pending = e;
       });
       el.addEventListener("pointerleave", () => {
-        el.style.transition = ""; el.style.transform = "";
+        rect = null; el.style.transition = ""; el.style.transform = "";
       });
     });
   }
@@ -828,10 +891,11 @@
         const len = Math.hypot(x, y, z) || 1; // keep points on the unit sphere
         n.x = x / len; n.y = y / len; n.z = z / len;
         const s = (z + 2) / 3;
-        n.span.style.transform = `translate(-50%,-50%) translate3d(${x * R}px, ${y * R}px, 0) scale(${0.55 + s * 0.6})`;
-        n.span.style.opacity = 0.25 + s * 0.75;
-        n.span.style.zIndex = Math.round(s * 100);
-        n.span.style.fontSize = "clamp(.7rem, 1.6vw, 1rem)";
+        n.span.style.transform = `translate(-50%,-50%) translate3d(${(x * R).toFixed(1)}px, ${(y * R).toFixed(1)}px, 0) scale(${(0.55 + s * 0.6).toFixed(3)})`;
+        n.span.style.opacity = (0.25 + s * 0.75).toFixed(2);
+        // Restacking is expensive, so only touch z-index when a tag crosses a depth band.
+        const band = Math.round(s * 10);
+        if (band !== n.band) { n.band = band; n.span.style.zIndex = band; }
       }
     });
   }
