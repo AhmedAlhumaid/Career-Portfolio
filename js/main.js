@@ -141,7 +141,7 @@
 
   function initRoles() {
     const el = $("#roleText");
-    const roles = ["Software Engineer", "Full-Stack Developer", "Cloud Engineer", "Distributed Systems Nerd", "Flutter Developer", "DevOps Enthusiast"];
+    const roles = ["Software Engineer", "Cybersecurity Enthusiast", "Full-Stack Developer", "Cloud Engineer", "Aspiring Security Analyst", "Distributed Systems Nerd"];
     let i = 0;
     setInterval(() => { i = (i + 1) % roles.length; scramble(el, roles[i], 900); }, 2800);
   }
@@ -171,6 +171,128 @@
       const txt = a.textContent;
       a.addEventListener("pointerenter", () => scramble(a, txt, 450));
     });
+  }
+
+  /* ------------------------------------------------ Space background */
+  // Full-page starfield: parallax star layers, warp streaks while scrolling,
+  // shooting stars, drifting nebulae and a ringed planet.
+  function initSpace() {
+    const canvas = $("#space");
+    let ctx, W, H, stars = [], nebulae = [], shooters = [];
+    const LAYERS = [
+      { depth: 0.08, size: [0.4, 1.0], alpha: 0.5 },
+      { depth: 0.2, size: [0.8, 1.5], alpha: 0.75 },
+      { depth: 0.45, size: [1.2, 2.2], alpha: 1 },
+    ];
+    const TINTS = ["#ffffff", "#ffffff", "#cfe0ff", "#ffe9c4", "#7cf7d4", "#c7b8ff"];
+
+    const resize = () => {
+      ({ ctx, w: W, h: H } = fitCanvas(canvas));
+      const total = clamp((W * H) / 2600, 250, 800);
+      stars = Array.from({ length: total }, () => {
+        const L = LAYERS[Math.random() < 0.55 ? 0 : Math.random() < 0.7 ? 1 : 2];
+        return {
+          x: rand(0, W), y: rand(0, H), L, r: rand(L.size[0], L.size[1]),
+          c: TINTS[(Math.random() * TINTS.length) | 0], tw: rand(0.5, 2.5), ph: rand(0, 6.3),
+        };
+      });
+      nebulae = [
+        { x: 0.18, y: 0.3, r: 0.55, c: "124,140,255", a: 0.1 },
+        { x: 0.85, y: 0.65, r: 0.6, c: "255,106,213", a: 0.08 },
+        { x: 0.55, y: 1.1, r: 0.5, c: "124,247,212", a: 0.06 },
+      ].map((n) => ({ ...n, ph: rand(0, 6.3) }));
+    };
+    let rt; addEventListener("resize", () => { clearTimeout(rt); rt = setTimeout(resize, 150); });
+    resize();
+
+    let lastScroll = scrollY, vel = 0, px = 0, py = 0;
+
+    function planet(t, sy) {
+      const R = Math.min(W, H) * (W < 700 ? 0.2 : 0.1);
+      const x = W * (W < 700 ? 1.02 : 0.92) + Math.sin(t / 9000) * 10;
+      // drifts upward as the page scrolls, then wraps back in from below
+      const cycle = H * 1.8, base = H * (W < 700 ? 0.12 : 0.3) - sy * 0.12 + H * 0.4;
+      const yy = ((base % cycle) + cycle) % cycle - H * 0.4 + Math.cos(t / 11000) * 8;
+      ctx.save();
+      ctx.translate(x - px * 30, yy - py * 30);
+      // atmosphere glow
+      const glow = ctx.createRadialGradient(0, 0, R * 0.8, 0, 0, R * 1.9);
+      glow.addColorStop(0, "rgba(124,140,255,.25)"); glow.addColorStop(1, "rgba(124,140,255,0)");
+      ctx.fillStyle = glow; ctx.beginPath(); ctx.arc(0, 0, R * 1.9, 0, Math.PI * 2); ctx.fill();
+      // back half of the ring
+      ctx.rotate(-0.35);
+      ctx.strokeStyle = "rgba(255,210,160,.35)"; ctx.lineWidth = R * 0.08;
+      ctx.beginPath(); ctx.ellipse(0, 0, R * 1.75, R * 0.42, 0, Math.PI, Math.PI * 2); ctx.stroke();
+      // body
+      const body = ctx.createRadialGradient(-R * 0.4, -R * 0.4, R * 0.1, 0, 0, R);
+      body.addColorStop(0, "#8f9bff"); body.addColorStop(0.55, "#4b3f9e"); body.addColorStop(1, "#140f2e");
+      ctx.fillStyle = body; ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.fill();
+      // bands
+      ctx.save(); ctx.beginPath(); ctx.arc(0, 0, R, 0, Math.PI * 2); ctx.clip();
+      for (let i = -3; i <= 3; i++) {
+        ctx.fillStyle = `rgba(255,255,255,${0.035 + (i % 2 ? 0.02 : 0)})`;
+        ctx.fillRect(-R, i * R * 0.24 + Math.sin(t / 3000 + i) * 2, R * 2, R * 0.09);
+      }
+      ctx.restore();
+      // front half of the ring
+      ctx.strokeStyle = "rgba(255,220,180,.6)";
+      ctx.beginPath(); ctx.ellipse(0, 0, R * 1.75, R * 0.42, 0, 0, Math.PI); ctx.stroke();
+      ctx.strokeStyle = "rgba(255,106,213,.25)"; ctx.lineWidth = R * 0.03;
+      ctx.beginPath(); ctx.ellipse(0, 0, R * 1.95, R * 0.5, 0, 0, Math.PI); ctx.stroke();
+      ctx.restore();
+    }
+
+    const frame = (t) => {
+      const sy = scrollY;
+      vel = lerp(vel, sy - lastScroll, 0.2); lastScroll = sy;
+      if (mouse.x > -1000) { px = lerp(px, mouse.x / W - 0.5, 0.05); py = lerp(py, mouse.y / H - 0.5, 0.05); }
+      ctx.clearRect(0, 0, W, H);
+
+      // drifting nebulae
+      for (const n of nebulae) {
+        const nx = (n.x + Math.sin(t / 20000 + n.ph) * 0.04) * W, ny = (n.y + Math.cos(t / 24000 + n.ph) * 0.04) * H - ((sy * 0.03) % H);
+        const g = ctx.createRadialGradient(nx, ny, 0, nx, ny, n.r * Math.max(W, H));
+        g.addColorStop(0, `rgba(${n.c},${n.a})`); g.addColorStop(1, `rgba(${n.c},0)`);
+        ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      }
+
+      // stars (parallax + warp streaks)
+      const warp = clamp(Math.abs(vel), 0, 80);
+      for (const s of stars) {
+        const d = s.L.depth;
+        let y = (s.y - sy * d - py * 40 * d * 3) % H; if (y < 0) y += H;
+        let x = (s.x - px * 40 * d * 3) % W; if (x < 0) x += W;
+        const a = s.L.alpha * (reduced ? 0.8 : 0.55 + 0.45 * Math.sin(t / 1000 * s.tw + s.ph));
+        ctx.globalAlpha = a; ctx.fillStyle = s.c;
+        const streak = warp * d * 1.4;
+        if (streak > 1.5 && !reduced) {
+          ctx.strokeStyle = s.c; ctx.lineWidth = s.r;
+          ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x, y + Math.sign(vel) * streak); ctx.stroke();
+        } else {
+          ctx.beginPath(); ctx.arc(x, y, s.r, 0, Math.PI * 2); ctx.fill();
+          if (s.r > 1.7) { ctx.globalAlpha = a * 0.25; ctx.beginPath(); ctx.arc(x, y, s.r * 3, 0, Math.PI * 2); ctx.fill(); }
+        }
+      }
+      ctx.globalAlpha = 1;
+
+      planet(t, sy);
+
+      // shooting stars
+      if (!reduced && Math.random() < 0.006) {
+        const ang = rand(0.3, 0.7);
+        shooters.push({ x: rand(0, W * 0.8), y: rand(0, H * 0.5), vx: Math.cos(ang) * 14, vy: Math.sin(ang) * 14, life: 1 });
+      }
+      shooters = shooters.filter((m) => {
+        m.x += m.vx; m.y += m.vy; m.life -= 0.015;
+        const g = ctx.createLinearGradient(m.x, m.y, m.x - m.vx * 9, m.y - m.vy * 9);
+        g.addColorStop(0, `rgba(255,255,255,${m.life})`); g.addColorStop(1, "rgba(124,247,212,0)");
+        ctx.strokeStyle = g; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(m.x, m.y); ctx.lineTo(m.x - m.vx * 9, m.y - m.vy * 9); ctx.stroke();
+        return m.life > 0 && m.x < W + 200 && m.y < H + 200;
+      });
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
   }
 
   /* --------------------------------------------------------- Hero name */
@@ -774,6 +896,7 @@
 
   /* ------------------------------------------------------------------ Boot */
   initCursor();
+  initSpace();
   initHeroName();
   initNav();
   initSplits();
